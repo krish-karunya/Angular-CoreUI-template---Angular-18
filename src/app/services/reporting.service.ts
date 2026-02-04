@@ -33,7 +33,7 @@ export class ReportingService {
       );
   }
 
-  getProgressReportBData(traineeId: string, taskId: number, startDate: Date, endDate: Date, subTaskId: number): Observable<IProgressReportBData> {
+  getProgressReportBData(traineeId: string, taskId: number, startDate: Date, endDate: Date, subTaskId: number): Observable<IProgressReportBData |null> {
     return this.http.get<any>('/api/ProgressReport/b/' + traineeId + '/' + taskId + '/' + subTaskId,
       {
         params: new HttpParams()
@@ -45,11 +45,11 @@ export class ReportingService {
       })
       .pipe(
         tap(_ => this.log('fetched ProgressReportBData')),
-        catchError(this.handleError<IProgressReportBData>('getProgressReportBData', null))
+        catchError(this.handleError<IProgressReportBData|null>('getProgressReportBData', null))
       );
   }
 
-  getProgressReportCData(traineeId: string, taskId: number, startDate: Date, endDate: Date, subTaskId: number, breakOutAllOverrideSets: boolean): Observable<IProgressReportBData> {
+  getProgressReportCData(traineeId: string, taskId: number, startDate: Date, endDate: Date, subTaskId: number, breakOutAllOverrideSets: boolean): Observable<IProgressReportBData|null > {
     return this.http.get<any>('/api/ProgressReport/c/' + traineeId + '/' + taskId + '/' + subTaskId,
       {
         params: new HttpParams()
@@ -62,18 +62,18 @@ export class ReportingService {
       })
       .pipe(
         tap(_ => this.log('fetched ProgressReportBData')),
-        catchError(this.handleError<IProgressReportBData>('getProgressReportBData', null))
+        catchError(this.handleError<IProgressReportBData | null>('getProgressReportBData', null))
       );
   }
 
-  getTrainingSessionSummary(trainingSessionId: number): Observable<ITrainingSessionSummary> {
+  getTrainingSessionSummary(trainingSessionId: number): Observable<ITrainingSessionSummary |null> {
     return this.http.get<any>('/api/TrainingSessions/summary/' + trainingSessionId, {
       params: new HttpParams()
         .set('trainingSessionId', trainingSessionId.toString())
       })
       .pipe(
         tap(_ => this.log('fetched TrainingSessionSummary')),
-        catchError(this.handleError<ITrainingSessionSummary>('getTrainingSessionSummary', null))
+        catchError(this.handleError<ITrainingSessionSummary|null>('getTrainingSessionSummary',null))
       );
   }
 

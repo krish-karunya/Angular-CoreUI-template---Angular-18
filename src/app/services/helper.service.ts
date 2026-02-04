@@ -1,11 +1,15 @@
 import { Injectable, Inject } from '@angular/core';
-import { WINDOW } from '../window-providers';
+import { DOCUMENT } from '@angular/common';
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class HelperService {
   private indentSpaces: number = 5;
 
-  constructor(@Inject(WINDOW) private window: Window) {
+  constructor(@Inject(DOCUMENT) private document: Document) {}
+
+  // We are accessing the Window via Document:
+  private get window(): Window {
+    return this.document.defaultView!;
   }
 
   getHost(): string {
@@ -40,7 +44,12 @@ export class HelperService {
     }
   }
 
-  logObject(label: string, obj: any, expandSubObjects: boolean = false, indent = 0) {
+  logObject(
+    label: string,
+    obj: any,
+    expandSubObjects: boolean = false,
+    indent = 0,
+  ) {
     const padding: string = new Array(indent * this.indentSpaces + 1).join(' ');
 
     if (label != null) {
@@ -61,7 +70,12 @@ export class HelperService {
 
         if (isObject) {
           if (expandSubObjects) {
-            this.logObject('SUB ' + prop, obj[prop], expandSubObjects, indent + 1);
+            this.logObject(
+              'SUB ' + prop,
+              obj[prop],
+              expandSubObjects,
+              indent + 1,
+            );
           } else {
             // tslint:disable-next-line: no-shadowed-variable
             let output = prop + ' -> [OBJECT]';
@@ -82,15 +96,13 @@ export class HelperService {
       return false;
     }
 
-    return ((typeof val === 'function') || (typeof val === 'object'));
+    return typeof val === 'function' || typeof val === 'object';
   }
 
-
   getStringArrayDisplayLimit(stringList: string[], limit: number) {
-
     /*
      Takes an array of strings and returns a count of records to use that are less than the limit if the string records were concatenated together.
-    */ 
+    */
 
     var count: number = 0;
     var size: number = 0;
@@ -109,5 +121,4 @@ export class HelperService {
 
     return count;
   }
-
 }

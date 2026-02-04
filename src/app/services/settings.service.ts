@@ -4,10 +4,10 @@ import { Observable, of, Subject } from 'rxjs';
 export class AppSettings {
   textSize: number = 1;
   highContrast: boolean = false;
-  imageThumbWidth: number = null;
-  imageThumbHeight: number = null;
-  previewMaxWidth: number = null;
-  previewMaxHeight: number = null;
+  imageThumbWidth: number|null = null;
+  imageThumbHeight:  number|null = null;
+  previewMaxWidth:  number|null = null;
+  previewMaxHeight:  number|null = null;
 }
 
 const SETTINGS_KEY = "configuration";

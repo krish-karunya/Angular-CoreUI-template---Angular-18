@@ -1,5 +1,8 @@
 import { ApplicationConfig, importProvidersFrom } from '@angular/core';
 import { provideAnimations } from '@angular/platform-browser/animations';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { HTTP_INTERCEPTORS } from '@angular/common/http';
+import { LoadingInterceptor } from './_interceptors/loading.interceptor';
 import {
   provideRouter,
   withEnabledBlockingInitialNavigation,
@@ -27,6 +30,13 @@ export const appConfig: ApplicationConfig = {
       withViewTransitions(),
       withHashLocation()
     ),
+   // HttpClient + Interceptors
+    provideHttpClient(withInterceptorsFromDi()),
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: LoadingInterceptor,
+      multi: true
+    },
     importProvidersFrom(SidebarModule, DropdownModule),
     IconSetService,
     provideAnimations()

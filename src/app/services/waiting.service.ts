@@ -10,11 +10,11 @@ export class WaitingService {
   //loading component subscribes to this change.
   public loadingChange: Subject<boolean> = new Subject<boolean>();
 
-  waitingMessage: string;
+  waitingMessage: string="Loading. Please Wait...";
 
   constructor(private spinnerService: NgxSpinnerService) 
   { 
-    
+     
   }
 
   busy(requestType: string) {

@@ -1,28 +1,46 @@
 import { Injectable } from '@angular/core';
 import { HttpHeaders, HttpClient } from '@angular/common/http';
 import { Observable, of, BehaviorSubject } from 'rxjs';
-import { filter, map, mergeMap, take, tap, catchError, publishReplay, refCount } from 'rxjs/operators';
+import {
+  filter,
+  map,
+  mergeMap,
+  take,
+  tap,
+  catchError,
+  publishReplay,
+  refCount,
+} from 'rxjs/operators';
 
-import { IOrganization, IDivision, ISubDivision, IGrade, IGender, IRace, IEconomicStatus, ISpecialEducationCode } from './lookupService';
+import {
+  IOrganization,
+  IDivision,
+  ISubDivision,
+  IGrade,
+  IGender,
+  IRace,
+  IEconomicStatus,
+  ISpecialEducationCode,
+} from './lookupService';
 import { ITrainer } from './training.service';
 import { HelperService } from './helper.service';
-import { UserParams, UserRoles } from '../_models/user-service-models'
+import { UserParams, UserRoles } from '../_models/user-service-models';
 import { Role } from '../constants/_roles';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class UserService {
-
   httpOptions = {
-    headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+    headers: new HttpHeaders({ 'Content-Type': 'application/json' }),
   };
+
 
   private currentUserSource = new BehaviorSubject({
     id: 'UnknownUserID',
     userName: 'Unknown User',
-    organizationId: null,
-    organization: null,
+    organizationId: 0,
+    organization: "",
     firstName: 'Unknown FName',
     lastName: 'Unknown LName',
     active: false,
@@ -32,13 +50,13 @@ export class UserService {
     isTrainer: false,
     isTrainee: false,
     isSupervisor: false,
-    roles: []
+    roles: [],
   } as IApplicationUserRow);
 
   public CurrentUser$ = this.currentUserSource.asObservable();
-  public userRoles: Observable<string[]>;
-  public userParams: UserParams;
-  private userAssignedRoles: UserRoles;
+  public userRoles!: Observable<string[]>;
+  public userParams!: UserParams;
+  private userAssignedRoles!: UserRoles;
 
   private setCurrentUser(newUser: IApplicationUserRow): void {
     this.currentUserSource.next(newUser);
@@ -47,81 +65,101 @@ export class UserService {
   }
 
   // Inject HTTP client here
-  constructor(private http: HttpClient, private helpers: HelperService) {
-  }
+  constructor(
+    private http: HttpClient,
+    private helpers: HelperService,
+  ) {}
 
   //This should only get called in default-layout.component. Instead use getApplicationUserNonBinding.
   getApplicationUser(id: string) {
-    return this.http.get<IApplicationUserRow>('/api/ApplicationUsers/' + id)
+    return this.http
+      .get<IApplicationUserRow>('/api/ApplicationUsers/' + id)
       .pipe(
-        map(result => this.setCurrentUser(result)),
-        tap(_ =>
-            this.log(`fetched Application User id=${id}`
-          )
+        map((result) => this.setCurrentUser(result)),
+        tap((_) => this.log(`fetched Application User id=${id}`)),
+        catchError(
+          this.handleError<IApplicationUserRow>(`getApplicationUser id=${id}`),
         ),
-        catchError(this.handleError<IApplicationUserRow>(`getApplicationUser id=${id}`))
       );
   }
 
   GetUserRoles() {
     if (!this.userRoles) {
-      this.userRoles = this.http.get('/identity/account/manage?handler=roles').pipe(
-        map((result: string[]) => result),
-        publishReplay(1),
-        refCount()
-      );
+      this.userRoles = this.http
+        .get<string[]>('/identity/account/manage?handler=roles')
+        .pipe(
+          map((result: string[]) => result),
+          publishReplay(1),
+          refCount(),
+        );
     }
     return this.userRoles;
   }
 
   GetUserRolesById(id: string): Observable<IApplicationRole[]> {
-    return this.http.get<IApplicationRole[]>('/api/ApplicationUsers/AssignedRoles/' + id)
+    return this.http
+      .get<IApplicationRole[]>('/api/ApplicationUsers/AssignedRoles/' + id)
       .pipe(
-        tap(_ => this.log('Fetched Assigned Roles')),
-        catchError(this.handleError<IApplicationRole[]>('GetRolesById', []))
+        tap((_) => this.log('Fetched Assigned Roles')),
+        catchError(this.handleError<IApplicationRole[]>('GetRolesById', [])),
       );
   }
 
   GetAvailableUserRoles(id: string): Observable<IApplicationRole[]> {
-    return this.http.get<IApplicationRole[]>('/api/ApplicationUsers/AllRoles/' + id)
+    return this.http
+      .get<IApplicationRole[]>('/api/ApplicationUsers/AllRoles/' + id)
       .pipe(
-        tap(_ => this.log('Fetched available Roles')),
-        catchError(this.handleError<IApplicationRole[]>('AllRoles', []))
+        tap((_) => this.log('Fetched available Roles')),
+        catchError(this.handleError<IApplicationRole[]>('AllRoles', [])),
       );
   }
 
   getApplicationUsers(): Observable<IApplicationUserRow[]> {
-    return this.http.get<IApplicationUserRow[]>('/api/ApplicationUsers')
-      .pipe(
-        tap(_ => this.log('fetched Application Users')),
-        catchError(this.handleError<IApplicationUserRow[]>('GetApplicationUsers', []))
-      );
+    return this.http.get<IApplicationUserRow[]>('/api/ApplicationUsers').pipe(
+      tap((_) => this.log('fetched Application Users')),
+      catchError(
+        this.handleError<IApplicationUserRow[]>('GetApplicationUsers', []),
+      ),
+    );
   }
 
-  getApplicationUsersByOrganizationId(orgId: number): Observable<IApplicationUserRow[]> {
-    return this.http.get<IApplicationUserRow[]>('/api/ApplicationUsers/byOrganizationId/' + orgId)
+  getApplicationUsersByOrganizationId(
+    orgId: number,
+  ): Observable<IApplicationUserRow[]> {
+    return this.http
+      .get<
+        IApplicationUserRow[]
+      >('/api/ApplicationUsers/byOrganizationId/' + orgId)
       .pipe(
-        tap(_ => this.log('fetched Application Users for OrgId ' + orgId.toString())),
-        catchError(this.handleError<IApplicationUserRow[]>('GetApplicationUsersByOrganizationId', []))
+        tap((_) =>
+          this.log('fetched Application Users for OrgId ' + orgId.toString()),
+        ),
+        catchError(
+          this.handleError<IApplicationUserRow[]>(
+            'GetApplicationUsersByOrganizationId',
+            [],
+          ),
+        ),
       );
   }
 
   getTraineesByOrgId(orgId: number): Observable<ITraineeRow[]> {
-    return this.http.get<ITraineeRow[]>('/api/ApplicationUsers/byOrgId/' + orgId)
+    return this.http
+      .get<ITraineeRow[]>('/api/ApplicationUsers/byOrgId/' + orgId)
       .pipe(
-        tap(_ => this.log('fetched Application Users')),
-        catchError(this.handleError<ITraineeRow[]>('getTraineesByOrgId', []))
+        tap((_) => this.log('fetched Application Users')),
+        catchError(this.handleError<ITraineeRow[]>('getTraineesByOrgId', [])),
       );
   }
 
   getApplicationUserNonBinding(id: string): Observable<IApplicationUserRow> {
-    return this.http.get<IApplicationUserRow>('/api/ApplicationUsers/' + id)
+    return this.http
+      .get<IApplicationUserRow>('/api/ApplicationUsers/' + id)
       .pipe(
-        tap(_ =>
-          this.log(`fetched Application User id=${id}`
-          )
+        tap((_) => this.log(`fetched Application User id=${id}`)),
+        catchError(
+          this.handleError<IApplicationUserRow>(`getApplicationUser id=${id}`),
         ),
-        catchError(this.handleError<IApplicationUserRow>(`getApplicationUser id=${id}`))
       );
   }
 
@@ -130,112 +168,195 @@ export class UserService {
 
     if (!!this.userParams && !!this.userAssignedRoles) {
       if (this.userParams.userId === this.userAssignedRoles.userId) {
-        return this.userAssignedRoles.roles.some(x => x.code == role);
+        return this.userAssignedRoles.roles.some((x) => x.code == role);
       }
     }
     return hasRole;
   }
 
   deleteApplicationUser(id: string): Observable<any> {
-    return this.http.delete<IApplicationUser>('/api/ApplicationUsers/' + id)
+    return this.http
+      .delete<IApplicationUser>('/api/ApplicationUsers/' + id)
       .pipe(
-        tap(_ => this.log(`deleted Application User id=${id}`)),
-        catchError(this.handleError<IApplicationUser>(`deleteApplicationUser id=${id}`))
+        tap((_) => this.log(`deleted Application User id=${id}`)),
+        catchError(
+          this.handleError<IApplicationUser>(`deleteApplicationUser id=${id}`),
+        ),
       );
   }
 
   getApplicationUserForEdit(id: string): Observable<IApplicationUserForEdit> {
-    return this.http.get<IApplicationUserForEdit>('/api/ApplicationUsers/ForEdit/' + id)
+    return this.http
+      .get<IApplicationUserForEdit>('/api/ApplicationUsers/ForEdit/' + id)
       .pipe(
-        tap(_ => this.log(`Fetched Application User for Edit id=${id}`)),
-        catchError(this.handleError<IApplicationUserForEdit>(`getApplicationUserForEdit id=${id}`))
+        tap((_) => this.log(`Fetched Application User for Edit id=${id}`)),
+        catchError(
+          this.handleError<IApplicationUserForEdit>(
+            `getApplicationUserForEdit id=${id}`,
+          ),
+        ),
       );
   }
 
   getTrainersForOrg(id: number): Observable<ITrainer[]> {
-    return this.http.get<ITrainer[]>('/api/ApplicationUsers/trainersByOrgId/' + id)
+    return this.http
+      .get<ITrainer[]>('/api/ApplicationUsers/trainersByOrgId/' + id)
       .pipe(
-        tap(_ => this.log('fetched Trainers for Org')),
-        catchError(this.handleError<ITrainer[]>('getTrainersForOrg', []))
+        tap((_) => this.log('fetched Trainers for Org')),
+        catchError(this.handleError<ITrainer[]>('getTrainersForOrg', [])),
       );
   }
 
   getAdminsForOrg(id: number): Observable<IApplicationUserRow[]> {
-    return this.http.get<IApplicationUserRow[]>('/api/ApplicationUsers/OrgAdminsByOrgId/' + id)
+    return this.http
+      .get<
+        IApplicationUserRow[]
+      >('/api/ApplicationUsers/OrgAdminsByOrgId/' + id)
       .pipe(
-        tap(_ => this.log('fetched admins for Org')),
-        catchError(this.handleError<IApplicationUserRow[]>('getAdminsForOrg', []))
+        tap((_) => this.log('fetched admins for Org')),
+        catchError(
+          this.handleError<IApplicationUserRow[]>('getAdminsForOrg', []),
+        ),
       );
   }
 
-
   getTraineeGroupTrainees(traineeGroupId: number): Observable<ITraineeRow[]> {
-    return this.http.get<ITraineeRow[]>('/api/ApplicationUsers/byTraineeGroupId/' + traineeGroupId)
+    return this.http
+      .get<
+        ITraineeRow[]
+      >('/api/ApplicationUsers/byTraineeGroupId/' + traineeGroupId)
       .pipe(
-        tap(_ => this.log('fetched Trainees for TraineeGroup')),
-        catchError(this.handleError<ITraineeRow[]>('getTraineeGroupTrainees', []))
+        tap((_) => this.log('fetched Trainees for TraineeGroup')),
+        catchError(
+          this.handleError<ITraineeRow[]>('getTraineeGroupTrainees', []),
+        ),
       );
   }
 
   getTraineesByTrainerClasses(trainerId: string): Observable<ITraineeRow[]> {
-    return this.http.get<ITraineeRow[]>('/api/ApplicationUsers/byTrainerClasses/' + trainerId)
+    return this.http
+      .get<ITraineeRow[]>('/api/ApplicationUsers/byTrainerClasses/' + trainerId)
       .pipe(
-        tap(_ => this.log('fetched Trainees by Trainer Classes')),
-        catchError(this.handleError<ITraineeRow[]>('getTraineesByTrainerClasses', []))
+        tap((_) => this.log('fetched Trainees by Trainer Classes')),
+        catchError(
+          this.handleError<ITraineeRow[]>('getTraineesByTrainerClasses', []),
+        ),
       );
   }
 
-  getApplicationUserByUserName(userName: string): Observable<IApplicationUserForEdit> {
-        return this.http.get<IApplicationUserForEdit>('/api/ApplicationUsers/byUserName/' + userName)
-            .pipe(
-                tap(_ => this.log(`Fetched Application User by UserName, name = ${userName}`)),
-                catchError(this.handleError<IApplicationUserForEdit>(`getApplicationUserbyUserName name=${userName}`))
-            );
-    }
+  getApplicationUserByUserName(
+    userName: string,
+  ): Observable<IApplicationUserForEdit> {
+    return this.http
+      .get<IApplicationUserForEdit>(
+        '/api/ApplicationUsers/byUserName/' + userName,
+      )
+      .pipe(
+        tap((_) =>
+          this.log(`Fetched Application User by UserName, name = ${userName}`),
+        ),
+        catchError(
+          this.handleError<IApplicationUserForEdit>(
+            `getApplicationUserbyUserName name=${userName}`,
+          ),
+        ),
+      );
+  }
 
-  saveApplicationUser(applicationUser: IApplicationUserForEdit): Observable<IApplicationUserForEdit> {
+  saveApplicationUser(
+    applicationUser: IApplicationUserForEdit,
+  ): Observable<IApplicationUserForEdit> {
     const headers = new HttpHeaders().set('content-type', 'application/json');
 
     if (applicationUser.id != null && applicationUser.id !== '') {
-      return this.http.put<IApplicationUserForEdit>('/api/ApplicationUsers/' + applicationUser.id, applicationUser, { headers })
+      return this.http
+        .put<IApplicationUserForEdit>(
+          '/api/ApplicationUsers/' + applicationUser.id,
+          applicationUser,
+          { headers },
+        )
         .pipe(
-          tap(_ => this.log(`put ApplicationUser id=${applicationUser.id}`)),
-          catchError(this.handleError<IApplicationUserForEdit>(`saveApplicationUser id=${applicationUser.id}`))
+          tap((_) => this.log(`put ApplicationUser id=${applicationUser.id}`)),
+          catchError(
+            this.handleError<IApplicationUserForEdit>(
+              `saveApplicationUser id=${applicationUser.id}`,
+            ),
+          ),
         );
     } else {
-      return this.http.post<IApplicationUserForEdit>('/api/ApplicationUsers', applicationUser, { headers }).pipe(
-        tap(_ => this.log(`posted applicationUser id=${applicationUser.id}`)),
-        catchError(this.handleError<IApplicationUserForEdit>(`saveApplicationUser id=${applicationUser.id}`))
-      );
+      return this.http
+        .post<IApplicationUserForEdit>(
+          '/api/ApplicationUsers',
+          applicationUser,
+          { headers },
+        )
+        .pipe(
+          tap((_) =>
+            this.log(`posted applicationUser id=${applicationUser.id}`),
+          ),
+          catchError(
+            this.handleError<IApplicationUserForEdit>(
+              `saveApplicationUser id=${applicationUser.id}`,
+            ),
+          ),
+        );
     }
   }
 
   saveUserRoleAssignment(assignment: IUserRoleAssignment): Observable<any> {
     const headers = new HttpHeaders().set('content-type', 'application/json');
 
-    return this.http.put<IUserRoleAssignment>('/api/ApplicationUsers/' + assignment.userId + '/AssignRoles', assignment, { headers })
+    return this.http
+      .put<IUserRoleAssignment>(
+        '/api/ApplicationUsers/' + assignment.userId + '/AssignRoles',
+        assignment,
+        { headers },
+      )
       .pipe(
-        tap(_ => this.log(`put UserRoleAssignment id=${assignment.userId}`)),
-        catchError(this.handleError<IUserRoleAssignment>(`SaveUserRoleAssignment id=${assignment.userId}`))
+        tap((_) => this.log(`put UserRoleAssignment id=${assignment.userId}`)),
+        catchError(
+          this.handleError<IUserRoleAssignment>(
+            `SaveUserRoleAssignment id=${assignment.userId}`,
+          ),
+        ),
       );
   }
 
   saveUserAssignment(assignment: IUserAssignment): Observable<any> {
     const headers = new HttpHeaders().set('content-type', 'application/json');
 
-    return this.http.put<IUserAssignment>('/api/ApplicationUsers/' + assignment.userId + '/assignTasks', assignment, { headers })
-        .pipe(
-          tap(_ => this.log(`put UserAssignment id=${assignment.userId}`)),
-          catchError(this.handleError<IUserAssignment>(`saveUserAssignment id=${assignment.userId}`))
-        );
+    return this.http
+      .put<IUserAssignment>(
+        '/api/ApplicationUsers/' + assignment.userId + '/assignTasks',
+        assignment,
+        { headers },
+      )
+      .pipe(
+        tap((_) => this.log(`put UserAssignment id=${assignment.userId}`)),
+        catchError(
+          this.handleError<IUserAssignment>(
+            `saveUserAssignment id=${assignment.userId}`,
+          ),
+        ),
+      );
   }
 
-  getUserTaskProblemSolving(userId: string, taskId: number): Observable<IUserTaskProblemSolving> {
-    return this.http.get<IUserTaskProblemSolving>(`/api/ApplicationUsers/${taskId}/userProblemSolving/${userId}`)
+  getUserTaskProblemSolving(
+    userId: string,
+    taskId: number,
+  ): Observable<IUserTaskProblemSolving> {
+    return this.http
+      .get<IUserTaskProblemSolving>(
+        `/api/ApplicationUsers/${taskId}/userProblemSolving/${userId}`,
+      )
       .pipe(
-        tap(_ => this.log('fetched User Task Problem Solving')),
-        catchError(this.handleError<IUserTaskProblemSolving>('getUserTaskProblemSolving'))
-    );
+        tap((_) => this.log('fetched User Task Problem Solving')),
+        catchError(
+          this.handleError<IUserTaskProblemSolving>(
+            'getUserTaskProblemSolving',
+          ),
+        ),
+      );
   }
 
   saveUserTaskProblemSolving(utps: IUserTaskProblemSolving): Observable<any> {
@@ -243,32 +364,55 @@ export class UserService {
 
     this.helpers.logObject('UTPS', utps);
 
-    return this.http.put<IUserTaskProblemSolving>('/api/ApplicationUsers/' + utps.taskId + '/userProblemSolving', utps, { headers })
+    return this.http
+      .put<IUserTaskProblemSolving>(
+        '/api/ApplicationUsers/' + utps.taskId + '/userProblemSolving',
+        utps,
+        { headers },
+      )
       .pipe(
-        tap(_ => this.log(`put UserTaskProblemSolving id=${utps.taskId}`)),
-        catchError(this.handleError<IUserTaskProblemSolving>(`saveUserTaskProblemSolving id=${utps.taskId}`))
+        tap((_) => this.log(`put UserTaskProblemSolving id=${utps.taskId}`)),
+        catchError(
+          this.handleError<IUserTaskProblemSolving>(
+            `saveUserTaskProblemSolving id=${utps.taskId}`,
+          ),
+        ),
       );
   }
 
   deleteUserTaskAssignment(id: string, taskId: number): Observable<any> {
-    return this.http.delete<IApplicationUser>('/api/ApplicationUsers/' + id + '/unassignTask/' + taskId)
+    return this.http
+      .delete<IApplicationUser>(
+        '/api/ApplicationUsers/' + id + '/unassignTask/' + taskId,
+      )
       .pipe(
-        tap(_ => this.log(`deleted User Task Assignment id=${id}`)),
-        catchError(this.handleError<IApplicationUser>(`deleteUserTaskAssignment id=${id}`))
+        tap((_) => this.log(`deleted User Task Assignment id=${id}`)),
+        catchError(
+          this.handleError<IApplicationUser>(
+            `deleteUserTaskAssignment id=${id}`,
+          ),
+        ),
       );
   }
 
-  changePassword(id: string, oldPassword: string, newPassword: string): Observable<any> {
+  changePassword(
+    id: string,
+    oldPassword: string,
+    newPassword: string,
+  ): Observable<any> {
     const formData = new FormData();
 
     formData.append('id', id);
     formData.append('oldPassword', oldPassword);
     formData.append('newPassword', newPassword);
 
-    return this.http.post<boolean>('/api/ApplicationUsers/ChangePassword', formData)
+    return this.http
+      .post<boolean>('/api/ApplicationUsers/ChangePassword', formData)
       .pipe(
-        tap(_ => this.log(`Change password for user id=${id}`)),
-        catchError(this.handleError<IApplicationUser>(`change user password id=${id}`))
+        tap((_) => this.log(`Change password for user id=${id}`)),
+        catchError(
+          this.handleError<IApplicationUser>(`change user password id=${id}`),
+        ),
       );
   }
 
@@ -278,16 +422,18 @@ export class UserService {
     formData.append('id', id);
     formData.append('newPassword', newPassword);
 
-    return this.http.post<boolean>('/api/ApplicationUsers/ResetPassword', formData)
+    return this.http
+      .post<boolean>('/api/ApplicationUsers/ResetPassword', formData)
       .pipe(
-        tap(_ => this.log(`Reset password for user id=${id}`)),
-        catchError(this.handleError<IApplicationUser>(`Reset user password id=${id}`))
+        tap((_) => this.log(`Reset password for user id=${id}`)),
+        catchError(
+          this.handleError<IApplicationUser>(`Reset user password id=${id}`),
+        ),
       );
   }
 
   private handleError<T>(operation = 'operation', result?: T) {
     return (error: any): Observable<T> => {
-
       // TODO: send the error to remote logging infrastructure
       console.error(error); // log to console instead
 
@@ -418,6 +564,3 @@ export interface IUserTaskProblemSolvingDetail {
   taskStepId: number;
   taskId: number;
 }
-
-
-

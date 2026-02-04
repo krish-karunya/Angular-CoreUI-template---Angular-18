@@ -1,6 +1,6 @@
-import { Injectable, OnInit } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { BehaviorSubject, Observable, of, Subject } from 'rxjs';
+import { BehaviorSubject, Observable, of } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Router } from '@angular/router';
 
@@ -8,7 +8,7 @@ import { Router } from '@angular/router';
 @Injectable({
   providedIn: 'root'
 })
-export class UiService implements OnInit {
+export class UiService  {
   
   private teachingManualSection: string = 'Teaching Manual';
 
@@ -40,6 +40,7 @@ export class UiService implements OnInit {
       } else if (this.teachingManualSection === 'Daily Living') {
         return 7;
       }
+      return 1;
     } else {
       return 1;
     }
@@ -67,26 +68,19 @@ export class UiService implements OnInit {
   getHelpPage(): number {
     return 2;
   }
-
-  private handleError<T>(operation = 'operation', result?: T) {
-    return (error: any): Observable<T> => {
-
-      // TODO: send the error to remote logging infrastructure
-      console.error(error); // log to console instead
-
-      // TODO: better job of transforming error for user consumption
-      this.log(`${operation} failed: ${error.message}`);
-
-      // Let the app keep running by returning an empty result.
-      return of(result as T);
-    };
-  }
+  
+private handleError<T>(operation = 'operation', result: T) {
+  return (error: any): Observable<T> => {
+    console.error(error);
+    this.log(`${operation} failed: ${error.message}`);
+    return of(result);
+  };
+}
 
   constructor(private httpClient: HttpClient, private router: Router) {
   }
 
-  ngOnInit() {
-  }
+ 
 
   private log(message: string) {
     console.log(`UiService: ${message}`);

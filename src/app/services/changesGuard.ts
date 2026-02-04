@@ -1,22 +1,24 @@
-import { CanDeactivate } from '@angular/router';
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { CanDeactivate } from '@angular/router';
+import { Observable } from 'rxjs';
 
 export interface ComponentCanDeactivate {
-  canDeactivate: () => boolean | Observable<boolean> | boolean;
+  canDeactivate: () => boolean | Observable<boolean>;
 }
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class ChangesGuard implements CanDeactivate<ComponentCanDeactivate> {
-  constructor() {
-  }
-
-  canDeactivate(component: ComponentCanDeactivate): boolean | Observable<boolean> {
-    if (!!component) {
-      return component.canDeactivate() ? true : confirm('WARNING: You have unsaved changes. Press Cancel to go back and save these changes, or OK to lose these changes.');
+  canDeactivate(
+    component: ComponentCanDeactivate,
+  ): boolean | Observable<boolean> {
+    if (component?.canDeactivate) {
+      return component.canDeactivate()
+        ? true
+        : confirm(
+            'WARNING: You have unsaved changes. Do you really want to leave?',
+          );
     }
+
     return true;
-        
   }
 }
-

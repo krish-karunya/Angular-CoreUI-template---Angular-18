@@ -1,12 +1,10 @@
 import { Injectable } from '@angular/core';
-import { ValidatorFn, AbstractControl } from '@angular/forms';
-import { FormGroup } from '@angular/forms';
+import { ValidatorFn, AbstractControl, FormGroup } from '@angular/forms';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class CustomvalidationService {
-
   PatternValidator(): ValidatorFn {
     return (control: AbstractControl): { [key: string]: any } => {
       if (!control.value) {
@@ -16,7 +14,8 @@ export class CustomvalidationService {
       // Regular Expression for Minimum 6 characters, 1 Uppercase, 1 lowercase, 1 number, and 1 non - alphanumeric symbol
       // 10/09/2020 DMB AMS-133  Changed how regex was declared.  Using new RegExp('') does not seem to work so that declaration was changed.
       // Javascript interpets characters in between forward slashes as a regular expression, so that was used as the declaration
-      const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z])(?=.*[!@#$%&`~\*\(\)\=\^\_\+\-;:\'\",.\/?\\|]).{6,}$/;
+      const regex =
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z])(?=.*[!@#$%&`~\*\(\)\=\^\_\+\-;:\'\",.\/?\\|]).{6,}$/;
 
       const valid = regex.test(control.value);
 
@@ -33,7 +32,10 @@ export class CustomvalidationService {
         return null;
       }
 
-      if (confirmPasswordControl.errors && !confirmPasswordControl.errors.passwordMismatch) {
+      if (
+        confirmPasswordControl.errors &&
+        !confirmPasswordControl.errors.passwordMismatch
+      ) {
         return null;
       }
 

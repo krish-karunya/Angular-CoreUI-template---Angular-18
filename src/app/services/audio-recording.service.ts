@@ -1,112 +1,108 @@
-import { Injectable } from "@angular/core";
-import * as RecordRTC from "recordrtc";
-import * as moment from "moment"
-import { Observable, Subject } from "rxjs";
+import { Injectable } from '@angular/core';
+import * as RecordRTC from 'recordrtc';
+import { Observable, Subject } from 'rxjs';
 
 export interface RecordedAudioOutput {
   blob: Blob;
   title: string;
 }
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class AudioRecordingService {
-  private stream;
-  private recorder;
-  private interval;
-  private startTime;
-  private _recorded = new Subject<RecordedAudioOutput>();
-  private _recordingTime = new Subject<string>();
-  private _recordingFailed = new Subject<string>();
+  private stream: MediaStream | null = null;
+  private recorder: RecordRTC.StereoAudioRecorder | null = null;
+  private intervalId: number | null = null;
+  private startTime: number | null = null;
 
-  getRecordedBlob(): Observable<RecordedAudioOutput> {
-    return this._recorded.asObservable();
-  }
+  private recordedSubject = new Subject<RecordedAudioOutput>();
+  private recordingTimeSubject = new Subject<string>();
+  private recordingFailedSubject = new Subject<string>();
 
-  getRecordedTime(): Observable<string> {
-    return this._recordingTime.asObservable();
-  }
+  recorded$: Observable<RecordedAudioOutput> =
+    this.recordedSubject.asObservable();
 
-  recordingFailed(): Observable<string> {
-    return this._recordingFailed.asObservable();
-  }
+  recordingTime$: Observable<string> = this.recordingTimeSubject.asObservable();
 
-  startRecording() {
-    if (this.recorder) {
-      // It means recording is already started or it is already recording something
-      return;
-    }
+  recordingFailed$: Observable<string> =
+    this.recordingFailedSubject.asObservable();
 
-    this._recordingTime.next("00:00");
+  startRecording(): void {
+    if (this.recorder) return;
+
+    this.recordingTimeSubject.next('00:00');
+
     navigator.mediaDevices
       .getUserMedia({ audio: true })
-      .then(s => {
-        this.stream = s;
+      .then((stream) => {
+        this.stream = stream;
         this.record();
       })
-      .catch(error => {
-        this._recordingFailed.next();
+      .catch(() => {
+        this.recordingFailedSubject.next('Microphone permission denied');
       });
   }
 
-  abortRecording() {
-    this.stopMedia();
+  stopRecording(): void {
+    if (!this.recorder) return;
+
+    this.recorder.stop(
+      (blob: Blob) => {
+        const title = `audio_${Date.now()}.wav`;
+        this.cleanup();
+        this.recordedSubject.next({ blob, title });
+      },
+      // () => {
+      //   this.cleanup();
+      //   this.recordingFailedSubject.next('Recording failed');
+      // },
+    );
   }
 
-  private record() {
+  abortRecording(): void {
+    this.cleanup();
+  }
+
+  private record(): void {
+    if (!this.stream) return;
+
     this.recorder = new RecordRTC.StereoAudioRecorder(this.stream, {
-      type: "audio",
-      mimeType: "audio/webm"
+      type: 'audio',
+      mimeType: 'audio/webm',
     });
 
     this.recorder.record();
-    this.startTime = moment();
-    this.interval = setInterval(() => {
-      const currentTime = moment();
-      const diffTime = moment.duration(currentTime.diff(this.startTime));
-      const time =
-        this.toString(diffTime.minutes()) +
-        ":" +
-        this.toString(diffTime.seconds());
-      this._recordingTime.next(time);
+    this.startTime = Date.now();
+
+    this.intervalId = window.setInterval(() => {
+      if (!this.startTime) return;
+
+      const diff = Date.now() - this.startTime;
+      const minutes = Math.floor(diff / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+
+      this.recordingTimeSubject.next(
+        `${this.pad(minutes)}:${this.pad(seconds)}`,
+      );
     }, 1000);
   }
 
-  private toString(value) {
-    let val = value;
-    if (!value) val = "00";
-    if (value < 10) val = "0" + value;
-    return val;
+  private pad(value: number): string {
+    return value < 10 ? `0${value}` : `${value}`;
   }
 
-  stopRecording() {
-    if (this.recorder) {
-      this.recorder.stop(
-        blob => {
-          if (this.startTime) {
-            const mp3Name = encodeURIComponent(
-              "audio_" + new Date().getTime() + ".wav"
-            );
-            this.stopMedia();
-            this._recorded.next({ blob: blob, title: mp3Name });
-          }
-        },
-        () => {
-          this.stopMedia();
-          this._recordingFailed.next();
-        }
-      );
-    }
-  }
+  private cleanup(): void {
+    this.recorder = null;
 
-  private stopMedia() {
-    if (this.recorder) {
-      this.recorder = null;
-      clearInterval(this.interval);
-      this.startTime = null;
-      if (this.stream) {
-        this.stream.getAudioTracks().forEach(track => track.stop());
-        this.stream = null;
-      }
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
     }
+
+    if (this.stream) {
+      this.stream.getTracks().forEach((track) => track.stop());
+      this.stream = null;
+    }
+
+    this.startTime = null;
   }
 }
